@@ -12,7 +12,7 @@ import {
 } from '../components/ui/select';
 import { MessageSquare, User, Calendar } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import * as React from 'react';
+import React from 'react';
 
 interface FeedbackItem {
   id: number;

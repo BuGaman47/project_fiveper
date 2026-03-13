@@ -1,13 +1,13 @@
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { FolderKanban, Clock, CheckCircle, AlertCircle } from 'lucide-react';
-import * as React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'; ///import ปุ่มและการ์ดจาก components/ui
+import { FolderKanban, Clock, CheckCircle, AlertCircle } from 'lucide-react'; //import ไอคอนจาก lucide-react
+import * as React from 'react'; //import React โดยไม่ใช้ useState เพราะข้อมูลในแดชบอร์ดนี้เป็นข้อมูลคงที่ (static) สำหรับการแสดงผลเท่านั้น 
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'; //import components สำหรับสร้างกราฟแท่งจาก recharts
 
 const summaryData = [
-  { title: 'โครงการทั้งหมด', value: '12', icon: FolderKanban, color: 'bg-green-500' },
-  { title: 'กำลังดำเนินการ', value: '5', icon: Clock, color: 'bg-yellow-500' },
-  { title: 'เสร็จสิ้น', value: '6', icon: CheckCircle, color: 'bg-green-600' },
-  { title: 'ใกล้ครบกำหนด', value: '3', icon: AlertCircle, color: 'bg-red-500' },
+  { title: 'โครงการทั้งหมด', value: '', icon: FolderKanban, color: 'bg-green-500' },
+  { title: 'กำลังดำเนินการ', value: '', icon: Clock, color: 'bg-yellow-500' },
+  { title: 'เสร็จสิ้น', value: '', icon: CheckCircle, color: 'bg-green-600' },
+  { title: 'ใกล้ครบกำหนด', value: '', icon: AlertCircle, color: 'bg-red-500' },
 ];
 
 const chartData = [
@@ -16,7 +16,7 @@ const chartData = [
   { course: 'CS 301', projects: 5, completed: 1 },
 ];
 
-const recentProjects = [
+const recentProjects = [ //ข้อมูลโครงการล่าสุดที่จะแสดงในแดชบอร์ด
   { name: 'โครงการพัฒนาเว็บไซต์', course: 'CS 101', status: 'กำลังดำเนินการ', progress: 75 },
   { name: 'การออกแบบฐานข้อมูล', course: 'CS 201', status: 'กำลังดำเนินการ', progress: 45 },
   { name: 'โมเดลแมชชีนเลิร์นนิง', course: 'CS 301', status: 'ยังไม่เริ่ม', progress: 0 },

@@ -1,26 +1,25 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router';
-import { 
-  LayoutDashboard, 
-  FolderKanban, 
-  Target, 
-  MessageSquare, 
-  FileText, 
+import {
+  LayoutDashboard,
+  FolderKanban,
+  Target,
+  MessageSquare,
+  FileText,
   LogOut,
-  Users,
-  User
+  User,
+  BookOpen,
 } from 'lucide-react';
 import React from 'react';
 
 const menuItems = [
-  { path: '/', label: 'แดชบอร์ด', icon: LayoutDashboard },
-  { path: '/projects', label: 'โครงการของฉัน', icon: FolderKanban },
-  { path: '/milestones', label: 'เป้าหมาย', icon: Target },
-  { path: '/feedback', label: 'ข้อเสนอแนะ', icon: MessageSquare },
-  { path: '/reports', label: 'รายงาน', icon: FileText },
-  { path: '/users', label: 'จัดการผู้ใช้', icon: Users },
+  { path: '/teacher', label: 'แดชบอร์ด', icon: LayoutDashboard },
+  { path: '/teacher/projects', label: 'โครงการ', icon: FolderKanban },
+  { path: '/teacher/milestones', label: 'เป้าหมาย', icon: Target },
+  { path: '/teacher/feedback', label: 'ข้อเสนอแนะ', icon: MessageSquare },
+  { path: '/teacher/reports', label: 'รายงาน', icon: FileText },
 ];
 
-export function DashboardLayout() {
+export function DashboardLayout_teacher() {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -34,18 +33,25 @@ export function DashboardLayout() {
       <aside className="w-60 bg-white border-r border-gray-200 flex flex-col">
         {/* Logo Section */}
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl text-green-700">
-            ติดตามโครงการ
-          </h2>
+          <h2 className="text-xl text-green-700">ติดตามโครงการ</h2>
           <p className="text-xs text-gray-600 mt-1">ระบบมหาวิทยาลัย</p>
+          <div className="mt-3 flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
+              <BookOpen className="w-3.5 h-3.5 text-purple-600" />
+            </div>
+            <span className="text-xs text-purple-600 font-medium">อาจารย์</span>
+          </div>
         </div>
 
         {/* Navigation Menu */}
         <nav className="flex-1 p-4 space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            
+            const isActive =
+              item.path === '/teacher'
+                ? location.pathname === '/teacher' || location.pathname === '/teacher/'
+                : location.pathname === item.path;
+
             return (
               <Link
                 key={item.path}
@@ -80,8 +86,8 @@ export function DashboardLayout() {
         {/* Top Navbar */}
         <header className="bg-white border-b border-gray-200 px-8 py-4">
           <div className="flex items-center justify-end gap-4">
-            <span className="text-sm text-gray-700">สมชาย ใจดี</span>
-            <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center">
+            <span className="text-sm text-gray-700">ดร.สมหญิง มีชัย</span>
+            <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center">
               <User className="w-5 h-5 text-white" />
             </div>
           </div>

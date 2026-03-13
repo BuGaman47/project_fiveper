@@ -1,18 +1,39 @@
 import { createBrowserRouter } from "react-router";
+
+// Layouts
 import { DashboardLayout } from "./components/DashboardLayout";
-import { Dashboard } from "./pages/Dashboard";
-import { Projects } from "./pages/Projects";
-import { Milestones } from "./pages/Milestones";
-import { Feedback } from "./pages/Feedback";
-import { Reports } from "./pages/Reports";
-import { UserManagement } from "./pages/UserManagement";
-import Login from "./pages/Login";
+import { DashboardLayout_student } from "./components/DashboardLayout_student";
+import { DashboardLayout_teacher } from "./components/DashboardLayout_teacher";
+
+// Admin pages
+import { Dashboard } from "./pages_admin/Dashboard";
+import { Projects } from "./pages_admin/Projects";
+import { Milestones } from "./pages_admin/Milestones";
+import { Feedback } from "./pages_admin/Feedback";
+import { Reports } from "./pages_admin/Reports";
+import { UserManagement } from "./pages_admin/UserManagement";
+import Login from "./pages_admin/Login";
+
+// Student (นิสิต) pages
+import { Dashboard_student } from "./pages_user/Dashboard_student";
+import { Projects_student } from "./pages_user/Projects_student";
+import { Milestones_student } from "./pages_user/Milestones_student";
+import { Feedback_student } from "./pages_user/Feedback_student";
+
+// Teacher (อาจารย์) pages
+import { Dashboard_teacher } from "./pages_teacher/Dashboard_teacher";
+import { Projects_teacher } from "./pages_teacher/Projects_teacher";
+import { Milestones_teacher } from "./pages_teacher/Milestones_teacher";
+import { Feedback_teacher } from "./pages_teacher/Feedback_teacher";
+import { Reports_teacher } from "./pages_teacher/Reports_teacher";
 
 export const router = createBrowserRouter([
   {
     path: "/login",
     Component: Login,
   },
+
+  // Admin routes
   {
     path: "/",
     Component: DashboardLayout,
@@ -23,6 +44,31 @@ export const router = createBrowserRouter([
       { path: "feedback", Component: Feedback },
       { path: "reports", Component: Reports },
       { path: "users", Component: UserManagement },
+    ],
+  },
+
+  // Student (นิสิต) routes
+  {
+    path: "/student",
+    Component: DashboardLayout_student,
+    children: [
+      { index: true, Component: Dashboard_student },
+      { path: "projects", Component: Projects_student },
+      { path: "milestones", Component: Milestones_student },
+      { path: "feedback", Component: Feedback_student },
+    ],
+  },
+
+  // Teacher (อาจารย์) routes
+  {
+    path: "/teacher",
+    Component: DashboardLayout_teacher,
+    children: [
+      { index: true, Component: Dashboard_teacher },
+      { path: "projects", Component: Projects_teacher },
+      { path: "milestones", Component: Milestones_teacher },
+      { path: "feedback", Component: Feedback_teacher },
+      { path: "reports", Component: Reports_teacher },
     ],
   },
 ]);

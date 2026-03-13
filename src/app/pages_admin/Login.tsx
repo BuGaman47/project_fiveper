@@ -5,7 +5,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader } from '../components/ui/card';
-import * as React from 'react';
+import React from 'react';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -48,7 +48,7 @@ export default function Login() {
           {/* System Title */}
           <div className="text-center space-y-2">
             <h1 className="text-2xl text-gray-900">
-              ระบบติดตามความก้าวหน้าโครงการ
+              ระบบติดตามการดำเนินงานของนิสิต
             </h1>
             <p className="text-sm text-gray-600">เข้าสู่ระบบบัญชีของคุณ</p>
           </div>

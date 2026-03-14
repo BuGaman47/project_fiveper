@@ -5,6 +5,6 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Integer> {
 
-    // ✅ เพิ่ม method สำหรับค้นหา user ด้วย userId (ใช้ใน LoginController)
-    Optional<User> findByUserId(String userId);
+    // ✅ เปลี่ยนจาก findByUserId → findByEmail
+    Optional<User> findByEmail(String email);
 }

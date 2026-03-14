@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
+
 import {
   Select,
   SelectContent,
@@ -10,13 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '../components/ui/dialog';
+
 import { Plus, Calendar } from 'lucide-react';
 import { Progress } from '../components/ui/progress';
 import * as React from 'react';
@@ -38,7 +31,6 @@ const API_URL = 'http://localhost:8080/api/milestones';
 export function Milestones_teacher() {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', dueDate: '' });
 
   // Fetch milestones from API
@@ -59,27 +51,9 @@ export function Milestones_teacher() {
     fetchMilestones();
   }, []);
 
-  const handleAddMilestone = () => {
-    setFormData({ name: '', dueDate: '' });
-    setIsModalOpen(true);
-  };
+ 
 
-  // Local state update (ยังไม่มี POST endpoint ใน backend)
-  const handleSaveMilestone = () => {
-    if (!formData.name || !formData.dueDate) {
-      alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
-      return;
-    }
-    const newMilestone: Milestone = {
-      id: Math.max(...milestones.map((m) => m.id), 0) + 1,
-      name: formData.name,
-      dueDate: formData.dueDate,
-      status: 'ยังไม่เริ่ม',
-      progress: 0,
-    };
-    setMilestones([...milestones, newMilestone]);
-    setIsModalOpen(false);
-  };
+
 
   // Local state update (ยังไม่มี PUT endpoint ใน backend)
   const handleStatusChange = (id: number, newStatus: string) => {
@@ -119,10 +93,7 @@ export function Milestones_teacher() {
           <h1 className="text-3xl text-gray-900">เป้าหมาย</h1>
           <p className="text-gray-600 mt-1">ติดตามเป้าหมายและความก้าวหน้าโครงการ</p>
         </div>
-        <Button onClick={handleAddMilestone} className="bg-green-600 hover:bg-green-700">
-          <Plus className="w-4 h-4 mr-2" />
-          เพิ่มเป้าหมาย
-        </Button>
+        
       </div>
 
       {/* Milestones List */}
@@ -146,19 +117,7 @@ export function Milestones_teacher() {
                         </div>
                       )}
                     </div>
-                    <Select
-                      value={milestone.status}
-                      onValueChange={(value) => handleStatusChange(milestone.id, value)}
-                    >
-                      <SelectTrigger className="w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ยังไม่เริ่ม">ยังไม่เริ่ม</SelectItem>
-                        <SelectItem value="กำลังดำเนินการ">กำลังดำเนินการ</SelectItem>
-                        <SelectItem value="เสร็จสิ้น">เสร็จสิ้น</SelectItem>
-                      </SelectContent>
-                    </Select>
+                   
                   </div>
 
                   <div className="space-y-2">
@@ -181,42 +140,6 @@ export function Milestones_teacher() {
         </div>
       )}
 
-      {/* Add Milestone Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>เพิ่มเป้าหมายใหม่</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="milestoneName">ชื่อเป้าหมาย</Label>
-              <Input
-                id="milestoneName"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="กรอกชื่อเป้าหมาย"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="milestoneDueDate">วันครบกำหนด</Label>
-              <Input
-                id="milestoneDueDate"
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-              ยกเลิก
-            </Button>
-            <Button onClick={handleSaveMilestone} className="bg-green-600 hover:bg-green-700">
-              บันทึก
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

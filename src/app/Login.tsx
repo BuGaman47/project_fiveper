@@ -7,13 +7,8 @@ import { Button } from './components/ui/button';
 import { Card, CardContent, CardHeader } from './components/ui/card';
 import React from 'react';
 
-// Backend: POST /api/login  body: { userId, password }
-//          → 200 { id, userId, name, email, role }
-//          → 401 "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
-
 const API_URL = 'http://localhost:8080/api/login';
 
-// ✅ map role จาก backend → path ที่จะ redirect ไป
 const roleRedirectMap: Record<string, string> = {
   'ผู้ดูแลระบบ': '/',
   'อาจารย์': '/teacher',
@@ -21,7 +16,7 @@ const roleRedirectMap: Record<string, string> = {
 };
 
 export default function Login() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,8 +26,8 @@ export default function Login() {
     e.preventDefault();
     setError('');
 
-    if (!username || !password) {
-      setError('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
+    if (!email || !password) {
+      setError('กรุณากรอก Email และรหัสผ่าน');
       return;
     }
 
@@ -41,21 +36,20 @@ export default function Login() {
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: username, password }),
+        body: JSON.stringify({ email, password }), // ✅ ส่ง email
       });
 
       if (!response.ok) {
         const msg = await response.text();
-        setError(msg || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+        setError(msg || 'Email หรือรหัสผ่านไม่ถูกต้อง');
         return;
       }
 
       const user = await response.json();
 
-      // บันทึกข้อมูล user ลง sessionStorage — ProtectedRoute จะอ่านจากนี้
+      // ✅ บันทึก user object ทั้งก้อน ไม่ใช่แค่ email string
       sessionStorage.setItem('currentUser', JSON.stringify(user));
 
-      // ✅ redirect ตาม role
       const redirectTo = roleRedirectMap[user.role] ?? '/login';
       navigate(redirectTo, { replace: true });
     } catch (err) {
@@ -90,13 +84,13 @@ export default function Login() {
         <CardContent className="px-10 pb-10">
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-gray-700">รหัสผู้ใช้</Label>
+              <Label htmlFor="email" className="text-gray-700">Email</Label>
               <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="เช่น STU001"
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="เช่น example@gmail.com"
                 className="h-11"
                 disabled={loading}
               />

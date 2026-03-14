@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
-
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import {
   Select,
   SelectContent,
@@ -9,14 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../components/ui/dialog';
 import { Plus, Calendar } from 'lucide-react';
 import { Progress } from '../components/ui/progress';
 import * as React from 'react';
-
-// Backend: GET /api/milestones → List<Milestone> { id, name, dueDate, status, progress }
-// หมายเหตุ: ยังไม่มี POST/PUT endpoint ใน backend สำหรับ milestones
-//           การเพิ่ม/แก้ไขสถานะจะอัปเดตใน local state เท่านั้น
 
 interface Milestone {
   id: number;
@@ -31,6 +34,8 @@ const API_URL = 'http://localhost:8080/api/milestones';
 export function Milestones_teacher() {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', dueDate: '' });
 
   // Fetch milestones from API
@@ -51,25 +56,90 @@ export function Milestones_teacher() {
     fetchMilestones();
   }, []);
 
- 
+  const handleAddMilestone = () => {
+    setFormData({ name: '', dueDate: '' });
+    setIsModalOpen(true);
+  };
 
+  // POST /api/milestones
+  const handleSaveMilestone = async () => {
+    if (!formData.name || !formData.dueDate) {
+      alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
+      return;
+    }
 
+    setSaving(true);
+    try {
+      const newMilestone = {
+        name: formData.name,
+        dueDate: formData.dueDate,
+        status: 'ยังไม่เริ่ม',
+        progress: 0,
+      };
 
-  // Local state update (ยังไม่มี PUT endpoint ใน backend)
-  const handleStatusChange = (id: number, newStatus: string) => {
-    setMilestones(
-      milestones.map((m) =>
-        m.id === id
-          ? {
-              ...m,
-              status: newStatus,
-              progress:
-                newStatus === 'เสร็จสิ้น' ? 100 :
-                newStatus === 'กำลังดำเนินการ' ? 50 : 0,
-            }
-          : m
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMilestone),
+      });
+
+      if (!response.ok) throw new Error('Failed to create milestone');
+
+      const created: Milestone = await response.json();
+      setMilestones((prev) => [...prev, created]);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Error creating milestone:', error);
+      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // PUT /api/milestones/:id
+  const handleStatusChange = async (id: number, newStatus: string) => {
+    const newProgress =
+      newStatus === 'เสร็จสิ้น' ? 100 :
+      newStatus === 'กำลังดำเนินการ' ? 50 : 0;
+
+    // Optimistic update
+    setMilestones((prev) =>
+      prev.map((m) =>
+        m.id === id ? { ...m, status: newStatus, progress: newProgress } : m
       )
     );
+
+    try {
+      const target = milestones.find((m) => m.id === id);
+      if (!target) return;
+
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...target,
+          status: newStatus,
+          progress: newProgress,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update milestone');
+
+      const updated: Milestone = await response.json();
+      // Sync with server response
+      setMilestones((prev) =>
+        prev.map((m) => (m.id === id ? updated : m))
+      );
+    } catch (error) {
+      console.error('Error updating milestone:', error);
+      alert('เกิดข้อผิดพลาดในการอัปเดตสถานะ กรุณาลองใหม่อีกครั้ง');
+      // Revert optimistic update on error
+      setMilestones((prev) =>
+        prev.map((m) =>
+          m.id === id ? { ...m, status: milestones.find((x) => x.id === id)?.status ?? m.status } : m
+        )
+      );
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -117,7 +187,7 @@ export function Milestones_teacher() {
                         </div>
                       )}
                     </div>
-                   
+                    
                   </div>
 
                   <div className="space-y-2">
@@ -140,6 +210,7 @@ export function Milestones_teacher() {
         </div>
       )}
 
+     
     </div>
   );
 }

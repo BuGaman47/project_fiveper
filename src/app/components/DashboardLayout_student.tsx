@@ -21,7 +21,11 @@ export function DashboardLayout_student() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+  const userName = currentUser?.name || 'ผู้ใช้งาน';
+
   const handleLogout = () => {
+    sessionStorage.removeItem('currentUser');
     navigate('/login');
   };
 
@@ -84,7 +88,7 @@ export function DashboardLayout_student() {
         {/* Top Navbar */}
         <header className="bg-white border-b border-gray-200 px-8 py-4">
           <div className="flex items-center justify-end gap-4">
-            <span className="text-sm text-gray-700">สมชาย ใจดี</span>
+            <span className="text-sm text-gray-700">{userName}</span>
             <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
               <User className="w-5 h-5 text-white" />
             </div>

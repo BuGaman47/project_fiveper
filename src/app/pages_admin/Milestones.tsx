@@ -21,10 +21,6 @@ import { Plus, Calendar } from 'lucide-react';
 import { Progress } from '../components/ui/progress';
 import * as React from 'react';
 
-// Backend: GET /api/milestones → List<Milestone> { id, name, dueDate, status, progress }
-// หมายเหตุ: ยังไม่มี POST/PUT endpoint ใน backend สำหรับ milestones
-//           การเพิ่ม/แก้ไขสถานะจะอัปเดตใน local state เท่านั้น
-
 interface Milestone {
   id: number;
   name: string;
@@ -38,6 +34,7 @@ const API_URL = 'http://localhost:8080/api/milestones';
 export function Milestones() {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', dueDate: '' });
 
@@ -64,38 +61,85 @@ export function Milestones() {
     setIsModalOpen(true);
   };
 
-  // Local state update (ยังไม่มี POST endpoint ใน backend)
-  const handleSaveMilestone = () => {
+  // POST /api/milestones
+  const handleSaveMilestone = async () => {
     if (!formData.name || !formData.dueDate) {
       alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
       return;
     }
-    const newMilestone: Milestone = {
-      id: Math.max(...milestones.map((m) => m.id), 0) + 1,
-      name: formData.name,
-      dueDate: formData.dueDate,
-      status: 'ยังไม่เริ่ม',
-      progress: 0,
-    };
-    setMilestones([...milestones, newMilestone]);
-    setIsModalOpen(false);
+
+    setSaving(true);
+    try {
+      const newMilestone = {
+        name: formData.name,
+        dueDate: formData.dueDate,
+        status: 'ยังไม่เริ่ม',
+        progress: 0,
+      };
+
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMilestone),
+      });
+
+      if (!response.ok) throw new Error('Failed to create milestone');
+
+      const created: Milestone = await response.json();
+      setMilestones((prev) => [...prev, created]);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Error creating milestone:', error);
+      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  // Local state update (ยังไม่มี PUT endpoint ใน backend)
-  const handleStatusChange = (id: number, newStatus: string) => {
-    setMilestones(
-      milestones.map((m) =>
-        m.id === id
-          ? {
-              ...m,
-              status: newStatus,
-              progress:
-                newStatus === 'เสร็จสิ้น' ? 100 :
-                newStatus === 'กำลังดำเนินการ' ? 50 : 0,
-            }
-          : m
+  // PUT /api/milestones/:id
+  const handleStatusChange = async (id: number, newStatus: string) => {
+    const newProgress =
+      newStatus === 'เสร็จสิ้น' ? 100 :
+      newStatus === 'กำลังดำเนินการ' ? 50 : 0;
+
+    // Optimistic update
+    setMilestones((prev) =>
+      prev.map((m) =>
+        m.id === id ? { ...m, status: newStatus, progress: newProgress } : m
       )
     );
+
+    try {
+      const target = milestones.find((m) => m.id === id);
+      if (!target) return;
+
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...target,
+          status: newStatus,
+          progress: newProgress,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update milestone');
+
+      const updated: Milestone = await response.json();
+      // Sync with server response
+      setMilestones((prev) =>
+        prev.map((m) => (m.id === id ? updated : m))
+      );
+    } catch (error) {
+      console.error('Error updating milestone:', error);
+      alert('เกิดข้อผิดพลาดในการอัปเดตสถานะ กรุณาลองใหม่อีกครั้ง');
+      // Revert optimistic update on error
+      setMilestones((prev) =>
+        prev.map((m) =>
+          m.id === id ? { ...m, status: milestones.find((x) => x.id === id)?.status ?? m.status } : m
+        )
+      );
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -208,11 +252,15 @@ export function Milestones() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={saving}>
               ยกเลิก
             </Button>
-            <Button onClick={handleSaveMilestone} className="bg-green-600 hover:bg-green-700">
-              บันทึก
+            <Button
+              onClick={handleSaveMilestone}
+              className="bg-green-600 hover:bg-green-700"
+              disabled={saving}
+            >
+              {saving ? 'กำลังบันทึก...' : 'บันทึก'}
             </Button>
           </DialogFooter>
         </DialogContent>

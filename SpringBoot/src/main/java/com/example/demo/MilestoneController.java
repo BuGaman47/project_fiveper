@@ -34,9 +34,11 @@ public class MilestoneController {
          if(existing == null){
             return null;
         }
+        if (m.getName() != null) existing.setName(m.getName());
+        if (m.getDueDate() != null) existing.setDueDate(m.getDueDate());
         existing.setStatus(m.getStatus());
         existing.setProgress(m.getProgress());
-         return repo.save(m);
+         return repo.save(existing);
      }
      // DELETE
     @DeleteMapping("/{id}")

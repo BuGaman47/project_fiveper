@@ -19,9 +19,14 @@ interface Project {
   name: string;
   student: string;
 }
-
+interface ProjectDetail {
+  id: number;
+  name: string;
+  student: string;
+  course: string;
+  status: 'completed' | 'in-progress';
+}
 const CHART_API_URL = 'http://localhost:8080/api/chart';
-const PROJECTS_DETAILS_API_URL = 'http://localhost:8080/api/project-details';
 const PROJECTS_API_URL = 'http://localhost:8080/api/projects';
 
 export function Dashboard() {
@@ -35,7 +40,7 @@ export function Dashboard() {
       try {
         const [chartRes, projectsRes] = await Promise.all([
           fetch(CHART_API_URL),
-          fetch(PROJECTS_DETAILS_API_URL), // ดึงข้อมูลโครงการทั้งหมดเพื่อคำนวณ summary
+
           fetch(PROJECTS_API_URL),
         ]);
 
@@ -43,9 +48,10 @@ export function Dashboard() {
         if (!projectsRes.ok) throw new Error('Failed to fetch projects data');
 
         const chartJson: ChartItem[] = await chartRes.json();
+
         const projectsJson: Project[] = await projectsRes.json();
 
-        setChartData(chartJson);
+        setChartData(chartJson); 
         setRecentProjects(projectsJson.slice(0, 5)); // แสดงแค่ 5 โครงการล่าสุด
       } catch (err) {
         console.error('Error fetching dashboard data:', err);

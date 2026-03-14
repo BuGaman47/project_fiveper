@@ -21,54 +21,75 @@ interface FeedbackItem {
   id: number;
   comment: string;
   instructorName: string;
-  date: string;
+  date: string;        
   projectName: string;
 }
 
-const API_URL = 'http://localhost:8080/api/feedback'; // ✅ แก้จาก 5173 → 8080
+const FEEDBACK_API_URL = 'http://localhost:8080/api/feedback'; // ✅ แก้จาก 5173 → 8080
+const PROJECTS_API_URL = 'http://localhost:8080/api/projects';
 
-const projects = [
-  { id: 1, name: 'โครงการพัฒนาเว็บไซต์', student: 'สมชาย ใจดี' },
-  { id: 2, name: 'การออกแบบฐานข้อมูล', student: 'สมหญิง ใจงาม' },
-  { id: 3, name: 'โมเดลแมชชีนเลิร์นนิง', student: 'สมศักดิ์ ทรงไทย' },
-];
+interface ProjectItem {
+  id: number;
+  name: string;
+  student: string;
+}
+
+
 
 export function Feedback() {
   const [feedbackData, setFeedbackData] = useState<FeedbackItem[]>([]);
-  const [selectedProject, setSelectedProject] = useState('');
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string>('');
   const [feedbackText, setFeedbackText] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('')
 
   // Fetch feedback data from API
+  
   useEffect(() => {
-    const fetchFeedbackData = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(API_URL);
-        if (!response.ok) throw new Error('Failed to fetch feedback data');
-        const data: FeedbackItem[] = await response.json();
-        setFeedbackData(data);
-      } catch (error) {
-        console.error('Error fetching feedback data:', error);
+        const [feedbackRes, projectsRes] = await Promise.all([
+          fetch(FEEDBACK_API_URL),
+          fetch(PROJECTS_API_URL),
+        ]);
+  
+        if (!feedbackRes.ok) throw new Error('Failed to fetch feedback');
+        if (!projectsRes.ok) throw new Error('Failed to fetch projects');
+  
+        const feedbackJson: FeedbackItem[] = await feedbackRes.json();
+        const projectsJson: ProjectItem[] = await projectsRes.json();
+  
+        setFeedbackData(feedbackJson);
+        setProjects(projectsJson);
+  
+      } catch (err) {
+        console.error(err);
+        setError('ไม่สามารถโหลดข้อมูลได้');
       } finally {
         setLoading(false);
       }
     };
-
-    fetchFeedbackData();
+  
+    fetchData();
   }, []);
+  
 
   const handleSubmitFeedback = async () => {
     if (!selectedProject || !feedbackText) {
       alert('กรุณาเลือกโครงการและกรอกข้อเสนอแนะ');
       return;
     }
-
-    const selectedProjectData = projects.find((p) => p.id.toString() === selectedProject);
-
+  
+    const selectedProjectData = projects.find(
+      (p) => p.id.toString() === selectedProject
+    );
+  
     setSubmitting(true);
+  
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(FEEDBACK_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -76,15 +97,17 @@ export function Feedback() {
           projectName: selectedProjectData?.name ?? '',
         }),
       });
-
-      if (!response.ok) throw new Error('Failed to submit feedback');
-
+  
+      if (!response.ok) throw new Error('Failed to submit');
+  
       const newFeedback: FeedbackItem = await response.json();
+  
       setFeedbackData((prev) => [newFeedback, ...prev]);
       setFeedbackText('');
       setSelectedProject('');
+  
     } catch (error) {
-      console.error('Error submitting feedback:', error);
+      console.error(error);
       alert('เกิดข้อผิดพลาดในการส่งข้อเสนอแนะ');
     } finally {
       setSubmitting(false);

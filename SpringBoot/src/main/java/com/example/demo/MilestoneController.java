@@ -14,7 +14,12 @@ public class MilestoneController {
     }
 
     @GetMapping
-    public List<Milestone> getAll(){   // ✅ แก้จาก List<Project> → List<Milestone>
+    public List<Milestone> getAll(){
         return repo.findAll();
+    }
+
+    @PostMapping
+    public Milestone create(@RequestBody Milestone m) {
+        return repo.save(m);
     }
 }

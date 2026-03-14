@@ -32,6 +32,9 @@ public class ProjectController {
     // CREATE
     @PostMapping
     public Project create(@RequestBody Project project) {
+
+        project.setId(0); // force new row
+
         return repo.save(project);
     }
 

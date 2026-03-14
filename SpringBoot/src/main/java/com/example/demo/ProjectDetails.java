@@ -1,27 +1,26 @@
 package com.example.demo;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "project_details")
-public class ProjectDetail {
+public class ProjectDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
     private String name;
-
     private String description;
-
     private String course;
 
     @Column(name = "due_date")
-    private String dueDate;
+    private LocalDate dueDate;
 
     private String status;
 
-    public ProjectDetail() {}
+    public ProjectDetails() {}
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -35,8 +34,8 @@ public class ProjectDetail {
     public String getCourse() { return course; }
     public void setCourse(String course) { this.course = course; }
 
-    public String getDueDate() { return dueDate; }
-    public void setDueDate(String dueDate) { this.dueDate = dueDate; }
+    public LocalDate getDueDate() { return dueDate; }
+    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

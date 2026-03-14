@@ -51,6 +51,7 @@ export function Projects_teacher() {
     description: '',
     course: '',
     dueDate: '',
+    status: '', // Default status
   });
 
   // GET all projects
@@ -72,7 +73,7 @@ export function Projects_teacher() {
 
   const handleAddProject = () => {
     setEditingProject(null);
-    setFormData({ name: '', description: '', course: '', dueDate: '' });
+    setFormData({ name: '', description: '', course: '', dueDate: '', status: '' });
     setIsModalOpen(true);
   };
 
@@ -83,70 +84,12 @@ export function Projects_teacher() {
       description: project.description,
       course: project.course,
       dueDate: project.dueDate,
+      status: project.status,
     });
     setIsModalOpen(true);
   };
 
-  // DELETE /api/project-details/:id
-  const handleDeleteProject = async (id: number) => {
-    if (!window.confirm('ต้องการลบโครงการนี้ใช่หรือไม่?')) return;
-
-    // Optimistic update
-    setProjects((prev) => prev.filter((p) => p.id !== id));
-
-    try {
-      const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('Failed to delete project');
-    } catch (error) {
-      console.error('Error deleting project:', error);
-      alert('เกิดข้อผิดพลาดในการลบโครงการ กรุณาลองใหม่อีกครั้ง');
-      // Reload to restore state
-      const response = await fetch(API_URL);
-      const data: Project[] = await response.json();
-      setProjects(data);
-    }
-  };
-
-  // POST or PUT
-  const handleSaveProject = async () => {
-    if (!formData.name || !formData.course || !formData.dueDate) {
-      alert('กรุณากรอกข้อมูลให้ครบ (ชื่อโครงการ, รายวิชา, วันครบกำหนด)');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      if (editingProject) {
-        // PUT /api/project-details/:id
-        const response = await fetch(`${API_URL}/${editingProject.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...formData, status: editingProject.status }),
-        });
-        if (!response.ok) throw new Error('Failed to update project');
-        const updated: Project = await response.json();
-        setProjects((prev) =>
-          prev.map((p) => (p.id === editingProject.id ? updated : p))
-        );
-      } else {
-        // POST /api/project-details
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...formData, status: 'ยังไม่เริ่ม' }),
-        });
-        if (!response.ok) throw new Error('Failed to create project');
-        const created: Project = await response.json();
-        setProjects((prev) => [...prev, created]);
-      }
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error('Error saving project:', error);
-      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง');
-    } finally {
-      setSaving(false);
-    }
-  };
+ 
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -154,7 +97,7 @@ export function Projects_teacher() {
         return 'bg-green-100 text-green-800';
       case 'กำลังดำเนินการ':
         return 'bg-yellow-100 text-yellow-800';
-      default:
+      case 'ยังไม่เริ่ม':
         return 'bg-gray-100 text-gray-800';
     }
   };
@@ -169,10 +112,7 @@ export function Projects_teacher() {
           <h1 className="text-3xl text-gray-900">โครงการของฉัน</h1>
           <p className="text-gray-600 mt-1">จัดการโครงการที่ได้รับมอบหมาย</p>
         </div>
-        <Button onClick={handleAddProject} className="bg-green-600 hover:bg-green-700">
-          <Plus className="w-4 h-4 mr-2" />
-          เพิ่มโครงการ
-        </Button>
+        
       </div>
 
       {/* Projects Table */}
@@ -188,7 +128,6 @@ export function Projects_teacher() {
                   <TableHead>รายวิชา</TableHead>
                   <TableHead>วันครบกำหนด</TableHead>
                   <TableHead>สถานะ</TableHead>
-                  <TableHead className="text-right">การดำเนินการ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -203,32 +142,13 @@ export function Projects_teacher() {
                     <TableCell>{project.course}</TableCell>
                     <TableCell>
                       {project.dueDate
-                        ? new Date(project.dueDate).toLocaleDateString('th-TH')
-                        : '-'}
+                        ? new Date(project.dueDate).toLocaleDateString('th-TH') : '-'}
                     </TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(project.status)}`}>
                         {project.status}
                       </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditProject(project)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteProject(project.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    </TableCell> 
                   </TableRow>
                 ))}
               </TableBody>
@@ -237,73 +157,6 @@ export function Projects_teacher() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Project Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>{editingProject ? 'แก้ไขโครงการ' : 'เพิ่มโครงการใหม่'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">ชื่อโครงการ</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="กรอกชื่อโครงการ"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">รายละเอียด</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="กรอกรายละเอียดโครงการ"
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="course">รายวิชา</Label>
-              <Select
-                value={formData.course}
-                onValueChange={(value) => setFormData({ ...formData, course: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="เลือกรายวิชา" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CS 101">CS 101 - การเขียนโปรแกรมเบื้องต้น</SelectItem>
-                  <SelectItem value="CS 201">CS 201 - โครงสร้างข้อมูล</SelectItem>
-                  <SelectItem value="CS 301">CS 301 - อัลกอริธึม</SelectItem>
-                  <SelectItem value="CS 401">CS 401 - วิศวกรรมซอฟต์แวร์</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dueDate">วันครบกำหนด</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={saving}>
-              ยกเลิก
-            </Button>
-            <Button
-              onClick={handleSaveProject}
-              className="bg-green-600 hover:bg-green-700"
-              disabled={saving}
-            >
-              {saving ? 'กำลังบันทึก...' : 'บันทึก'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

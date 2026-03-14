@@ -21,6 +21,7 @@ interface Project {
 }
 
 const CHART_API_URL = 'http://localhost:8080/api/chart';
+const PROJECTS_DETAILS_API_URL = 'http://localhost:8080/api/project-details';
 const PROJECTS_API_URL = 'http://localhost:8080/api/projects';
 
 export function Dashboard() {
@@ -34,6 +35,7 @@ export function Dashboard() {
       try {
         const [chartRes, projectsRes] = await Promise.all([
           fetch(CHART_API_URL),
+          fetch(PROJECTS_DETAILS_API_URL), // ดึงข้อมูลโครงการทั้งหมดเพื่อคำนวณ summary
           fetch(PROJECTS_API_URL),
         ]);
 

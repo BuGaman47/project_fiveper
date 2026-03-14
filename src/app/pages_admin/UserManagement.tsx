@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -26,7 +26,12 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { Plus, Edit, Trash2 } from 'lucide-react';
-import * as React from 'react';
+import React from 'react';
+
+// Backend: GET    /users      → List<User> { id, userId, name, email, role }
+// Backend: POST   /users      → User
+// Backend: PUT    /users/{id} → User
+// Backend: DELETE /users/{id} → "User deleted"
 
 interface User {
   id: number;
@@ -36,46 +41,10 @@ interface User {
   role: string;
 }
 
-const initialUsers: User[] = [
-  {
-    id: 1,
-    userId: 'STU001',
-    name: 'สมชาย ใจดี',
-    email: 'somchai.j@university.ac.th',
-    role: 'นักศึกษา',
-  },
-  {
-    id: 2,
-    userId: 'STU002',
-    name: 'สมหญิง ใจงาม',
-    email: 'somying.j@university.ac.th',
-    role: 'นักศึกษา',
-  },
-  {
-    id: 3,
-    userId: 'INS001',
-    name: 'ดร.สมหญิง มีชัย',
-    email: 'somying.m@university.ac.th',
-    role: 'อาจารย์',
-  },
-  {
-    id: 4,
-    userId: 'INS002',
-    name: 'ศ.ดร.สมชาย วิชาการ',
-    email: 'somchai.w@university.ac.th',
-    role: 'อาจารย์',
-  },
-  {
-    id: 5,
-    userId: 'ADM001',
-    name: 'ผู้ดูแลระบบ',
-    email: 'admin@university.ac.th',
-    role: 'ผู้ดูแลระบบ',
-  },
-];
+const API_URL = 'http://localhost:8080/users';
 
 export function UserManagement() {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [users, setUsers] = useState<User[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
@@ -83,11 +52,30 @@ export function UserManagement() {
     name: '',
     email: '',
     role: '',
+    password: '',  // ✅ เพิ่ม password field
   });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch(API_URL);
+        if (!response.ok) throw new Error('Failed to fetch users');
+        const data: User[] = await response.json();
+        setUsers(data);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   const handleAddUser = () => {
     setEditingUser(null);
-    setFormData({ userId: '', name: '', email: '', role: '' });
+    setFormData({ userId: '', name: '', email: '', role: '', password: '' });
     setIsModalOpen(true);
   };
 
@@ -98,36 +86,69 @@ export function UserManagement() {
       name: user.name,
       email: user.email,
       role: user.role,
+      password: '',  // ไม่แสดง password เดิม ให้กรอกใหม่ถ้าต้องการเปลี่ยน
     });
     setIsModalOpen(true);
   };
 
-  const handleDeleteUser = (id: number) => {
-    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้นี้?')) {
+  const handleDeleteUser = async (id: number) => {
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้นี้?')) return;
+
+    try {
+      const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete user');
       setUsers(users.filter((u) => u.id !== id));
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('เกิดข้อผิดพลาดในการลบผู้ใช้');
     }
   };
 
-  const handleSaveUser = () => {
+  const handleSaveUser = async () => {
     if (!formData.userId || !formData.name || !formData.email || !formData.role) {
       alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
       return;
     }
-
-    if (editingUser) {
-      setUsers(
-        users.map((u) =>
-          u.id === editingUser.id ? { ...u, ...formData } : u
-        )
-      );
-    } else {
-      const newUser: User = {
-        id: Math.max(...users.map((u) => u.id), 0) + 1,
-        ...formData,
-      };
-      setUsers([...users, newUser]);
+    if (!editingUser && !formData.password) {
+      alert('กรุณากรอกรหัสผ่าน');
+      return;
     }
-    setIsModalOpen(false);
+
+    try {
+      if (editingUser) {
+        // UPDATE - ส่ง password เฉพาะเมื่อกรอกมา
+        const body: any = {
+          userId: formData.userId,
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+        };
+        if (formData.password) body.password = formData.password;
+
+        const response = await fetch(`${API_URL}/${editingUser.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!response.ok) throw new Error('Failed to update user');
+        const updatedUser: User = await response.json();
+        setUsers(users.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+      } else {
+        // CREATE
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+        if (!response.ok) throw new Error('Failed to add user');
+        const newUser: User = await response.json();
+        setUsers([...users, newUser]);
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Error saving user:', error);
+      alert('เกิดข้อผิดพลาดในการบันทึกผู้ใช้');
+    }
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -142,6 +163,8 @@ export function UserManagement() {
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  if (loading) return <p>กำลังโหลดข้อมูล...</p>;
 
   return (
     <div className="space-y-6">
@@ -171,36 +194,36 @@ export function UserManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="text-gray-900">{user.userId}</TableCell>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs ${getRoleBadgeColor(user.role)}`}>
-                      {user.role}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditUser(user)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteUser(user.id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {users.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-8 text-gray-500">
+                    ไม่มีข้อมูลผู้ใช้
+                  </td>
+                </tr>
+              ) : (
+                users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="text-gray-900">{user.userId}</TableCell>
+                    <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${getRoleBadgeColor(user.role)}`}>
+                        {user.role}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditUser(user)}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.id)}>
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -256,6 +279,19 @@ export function UserManagement() {
                   <SelectItem value="ผู้ดูแลระบบ">ผู้ดูแลระบบ</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            {/* ✅ เพิ่ม password field */}
+            <div className="space-y-2">
+              <Label htmlFor="password">
+                รหัสผ่าน {editingUser && <span className="text-gray-400 text-xs">(เว้นว่างไว้ถ้าไม่ต้องการเปลี่ยน)</span>}
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder={editingUser ? 'กรอกรหัสผ่านใหม่ถ้าต้องการเปลี่ยน' : 'กรอกรหัสผ่าน'}
+              />
             </div>
           </div>
           <DialogFooter>

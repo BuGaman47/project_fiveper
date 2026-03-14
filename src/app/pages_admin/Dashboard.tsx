@@ -1,34 +1,81 @@
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'; ///import ปุ่มและการ์ดจาก components/ui
-import { FolderKanban, Clock, CheckCircle, AlertCircle } from 'lucide-react'; //import ไอคอนจาก lucide-react
-import * as React from 'react'; //import React โดยไม่ใช้ useState เพราะข้อมูลในแดชบอร์ดนี้เป็นข้อมูลคงที่ (static) สำหรับการแสดงผลเท่านั้น 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'; //import components สำหรับสร้างกราฟแท่งจาก recharts
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { FolderKanban, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import * as React from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useState, useEffect } from 'react';
 
-const summaryData = [
-  { title: 'โครงการทั้งหมด', value: '', icon: FolderKanban, color: 'bg-green-500' },
-  { title: 'กำลังดำเนินการ', value: '', icon: Clock, color: 'bg-yellow-500' },
-  { title: 'เสร็จสิ้น', value: '', icon: CheckCircle, color: 'bg-green-600' },
-  { title: 'ใกล้ครบกำหนด', value: '', icon: AlertCircle, color: 'bg-red-500' },
-];
+// Backend: GET /api/chart → List<Chart> { id, course, projects, completed }
+// Backend: GET /api/projects → List<Project> { id, name, student }
 
-const chartData = [
-  { course: 'CS 101', projects: 4, completed: 3 },
-  { course: 'CS 201', projects: 3, completed: 2 },
-  { course: 'CS 301', projects: 5, completed: 1 },
-];
+interface ChartItem {
+  id: number;
+  course: string;
+  projects: number;
+  completed: number;
+}
 
-const recentProjects = [ //ข้อมูลโครงการล่าสุดที่จะแสดงในแดชบอร์ด
-  { name: 'โครงการพัฒนาเว็บไซต์', course: 'CS 101', status: 'กำลังดำเนินการ', progress: 75 },
-  { name: 'การออกแบบฐานข้อมูล', course: 'CS 201', status: 'กำลังดำเนินการ', progress: 45 },
-  { name: 'โมเดลแมชชีนเลิร์นนิง', course: 'CS 301', status: 'ยังไม่เริ่ม', progress: 0 },
-  { name: 'แอปพลิเคชันมือถือ', course: 'CS 101', status: 'เสร็จสิ้น', progress: 100 },
-];
+interface Project {
+  id: number;
+  name: string;
+  student: string;
+}
+
+const CHART_API_URL = 'http://localhost:8080/api/chart';
+const PROJECTS_API_URL = 'http://localhost:8080/api/projects';
 
 export function Dashboard() {
+  const [chartData, setChartData] = useState<ChartItem[]>([]);
+  const [recentProjects, setRecentProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [chartRes, projectsRes] = await Promise.all([
+          fetch(CHART_API_URL),
+          fetch(PROJECTS_API_URL),
+        ]);
+
+        if (!chartRes.ok) throw new Error('Failed to fetch chart data');
+        if (!projectsRes.ok) throw new Error('Failed to fetch projects data');
+
+        const chartJson: ChartItem[] = await chartRes.json();
+        const projectsJson: Project[] = await projectsRes.json();
+
+        setChartData(chartJson);
+        setRecentProjects(projectsJson.slice(0, 5)); // แสดงแค่ 5 โครงการล่าสุด
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('ไม่สามารถโหลดข้อมูลได้');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // คำนวณ summary จาก chartData
+  const totalProjects = chartData.reduce((sum, item) => sum + item.projects, 0);
+  const totalCompleted = chartData.reduce((sum, item) => sum + item.completed, 0);
+  const inProgress = totalProjects - totalCompleted;
+
+  const summaryData = [
+    { title: 'โครงการทั้งหมด', value: totalProjects, icon: FolderKanban, color: 'bg-green-500' },
+    { title: 'กำลังดำเนินการ', value: inProgress, icon: Clock, color: 'bg-yellow-500' },
+    { title: 'เสร็จสิ้น', value: totalCompleted, icon: CheckCircle, color: 'bg-green-600' },
+    { title: 'จำนวนวิชา', value: chartData.length, icon: AlertCircle, color: 'bg-red-500' },
+  ];
+
+  if (loading) return <p>กำลังโหลดข้อมูล...</p>;
+  if (error) return <p className="text-red-500">{error}</p>;
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl text-gray-900">แดชบอร์ด</h1>
-        <p className="text-gray-600 mt-1">ยินดีต้อนรับ, สมชาย ใจดี</p>
+        <p className="text-gray-600 mt-1">ยินดีต้อนรับ</p>
       </div>
 
       {/* Summary Cards */}
@@ -79,33 +126,20 @@ export function Dashboard() {
             <CardTitle>โครงการล่าสุด</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentProjects.map((project, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex items-center justify-between">
+            {recentProjects.length === 0 ? (
+              <p className="text-gray-500 text-sm">ไม่มีข้อมูลโครงการ</p>
+            ) : (
+              <div className="space-y-4">
+                {recentProjects.map((project) => (
+                  <div key={project.id} className="flex items-center justify-between py-2 border-b last:border-0">
                     <div>
                       <p className="text-sm text-gray-900">{project.name}</p>
-                      <p className="text-xs text-gray-600">{project.course}</p>
+                      <p className="text-xs text-gray-600">{project.student}</p>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      project.status === 'เสร็จสิ้น' ? 'bg-green-100 text-green-800' :
-                      project.status === 'กำลังดำเนินการ' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {project.status}
-                    </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full ${
-                        project.progress === 100 ? 'bg-green-500' : 'bg-green-500'
-                      }`}
-                      style={{ width: `${project.progress}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -10,11 +10,11 @@ public class MilestoneController {
     private final MilestoneRepository repo;
 
     public MilestoneController(MilestoneRepository repo){
-        this.repo=repo;
+        this.repo = repo;
     }
 
     @GetMapping
-    public List<Project> getAll(){
+    public List<Milestone> getAll(){   // ✅ แก้จาก List<Project> → List<Milestone>
         return repo.findAll();
     }
 }

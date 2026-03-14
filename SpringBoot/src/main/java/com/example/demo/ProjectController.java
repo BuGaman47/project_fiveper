@@ -8,7 +8,7 @@ import com.example.demo.ProjectRepository;
 
 @RestController
 @RequestMapping("/api/projects")
-@CrossOrigin
+
 public class ProjectController {
 
     private final ProjectRepository repo;

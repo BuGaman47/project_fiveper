@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import {
@@ -21,6 +21,10 @@ import { Plus, Calendar } from 'lucide-react';
 import { Progress } from '../components/ui/progress';
 import * as React from 'react';
 
+// Backend: GET /api/milestones → List<Milestone> { id, name, dueDate, status, progress }
+// หมายเหตุ: ยังไม่มี POST/PUT endpoint ใน backend สำหรับ milestones
+//           การเพิ่ม/แก้ไขสถานะจะอัปเดตใน local state เท่านั้น
+
 interface Milestone {
   id: number;
   name: string;
@@ -29,61 +33,47 @@ interface Milestone {
   progress: number;
 }
 
-const projects = [
-  { id: 1, name: 'โครงการพัฒนาเว็บไซต์' },
-  { id: 2, name: 'การออกแบบฐานข้อมูล' },
-  { id: 3, name: 'โมเดลแมชชีนเลิร์นนิง' },
-];
-
-const initialMilestones: Milestone[] = [
-  {
-    id: 1,
-    name: 'การวางแผนโครงการ',
-    dueDate: '2026-03-05',
-    status: 'เสร็จสิ้น',
-    progress: 100,
-  },
-  {
-    id: 2,
-    name: 'การออกแบบ UI',
-    dueDate: '2026-03-10',
-    status: 'กำลังดำเนินการ',
-    progress: 60,
-  },
-  {
-    id: 3,
-    name: 'พัฒนา Backend',
-    dueDate: '2026-03-15',
-    status: 'กำลังดำเนินการ',
-    progress: 30,
-  },
-  {
-    id: 4,
-    name: 'ทดสอบและเผยแพร่',
-    dueDate: '2026-03-20',
-    status: 'ยังไม่เริ่ม',
-    progress: 0,
-  },
-];
+const API_URL = 'http://localhost:8080/api/milestones';
 
 export function Milestones() {
-  const [selectedProject, setSelectedProject] = useState('1');
-  const [milestones, setMilestones] = useState<Milestone[]>(initialMilestones);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    dueDate: '',
-  });
+  const [formData, setFormData] = useState({ name: '', dueDate: '' });
+
+  // Fetch milestones from API
+  useEffect(() => {
+    const fetchMilestones = async () => {
+      try {
+        const response = await fetch(API_URL);
+        if (!response.ok) throw new Error('Failed to fetch milestones');
+        const data: Milestone[] = await response.json();
+        setMilestones(data);
+      } catch (error) {
+        console.error('Error fetching milestones:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMilestones();
+  }, []);
 
   const handleAddMilestone = () => {
     setFormData({ name: '', dueDate: '' });
     setIsModalOpen(true);
   };
 
+  // Local state update (ยังไม่มี POST endpoint ใน backend)
   const handleSaveMilestone = () => {
+    if (!formData.name || !formData.dueDate) {
+      alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
+      return;
+    }
     const newMilestone: Milestone = {
       id: Math.max(...milestones.map((m) => m.id), 0) + 1,
-      ...formData,
+      name: formData.name,
+      dueDate: formData.dueDate,
       status: 'ยังไม่เริ่ม',
       progress: 0,
     };
@@ -91,6 +81,7 @@ export function Milestones() {
     setIsModalOpen(false);
   };
 
+  // Local state update (ยังไม่มี PUT endpoint ใน backend)
   const handleStatusChange = (id: number, newStatus: string) => {
     setMilestones(
       milestones.map((m) =>
@@ -112,11 +103,13 @@ export function Milestones() {
       case 'เสร็จสิ้น':
         return 'bg-green-100 text-green-800';
       case 'กำลังดำเนินการ':
-        return 'bg-green-100 text-green-800';
+        return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  if (loading) return <p>กำลังโหลดข้อมูล...</p>;
 
   return (
     <div className="space-y-6">
@@ -132,76 +125,61 @@ export function Milestones() {
         </Button>
       </div>
 
-      {/* Project Selection */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <Label htmlFor="project" className="text-gray-700 whitespace-nowrap">
-              เลือกโครงการ:
-            </Label>
-            <Select value={selectedProject} onValueChange={setSelectedProject}>
-              <SelectTrigger className="w-full max-w-md">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id.toString()}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Milestones List */}
-      <div className="grid gap-4">
-        {milestones.map((milestone) => (
-          <Card key={milestone.id}>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-lg text-gray-900">{milestone.name}</h3>
-                    <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
-                      <Calendar className="w-4 h-4" />
-                      <span>ครบกำหนด: {new Date(milestone.dueDate).toLocaleDateString('th-TH')}</span>
+      {milestones.length === 0 ? (
+        <p className="text-gray-500">ไม่มีข้อมูลเป้าหมาย</p>
+      ) : (
+        <div className="grid gap-4">
+          {milestones.map((milestone) => (
+            <Card key={milestone.id}>
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-lg text-gray-900">{milestone.name}</h3>
+                      {milestone.dueDate && (
+                        <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
+                          <Calendar className="w-4 h-4" />
+                          <span>
+                            ครบกำหนด: {new Date(milestone.dueDate).toLocaleDateString('th-TH')}
+                          </span>
+                        </div>
+                      )}
                     </div>
+                    <Select
+                      value={milestone.status}
+                      onValueChange={(value) => handleStatusChange(milestone.id, value)}
+                    >
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ยังไม่เริ่ม">ยังไม่เริ่ม</SelectItem>
+                        <SelectItem value="กำลังดำเนินการ">กำลังดำเนินการ</SelectItem>
+                        <SelectItem value="เสร็จสิ้น">เสร็จสิ้น</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Select
-                    value={milestone.status}
-                    onValueChange={(value) => handleStatusChange(milestone.id, value)}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ยังไม่เริ่ม">ยังไม่เริ่ม</SelectItem>
-                      <SelectItem value="กำลังดำเนินการ">กำลังดำเนินการ</SelectItem>
-                      <SelectItem value="เสร็จสิ้น">เสร็จสิ้น</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">ความก้าวหน้า</span>
-                    <span className="text-gray-900">{milestone.progress}%</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">ความก้าวหน้า</span>
+                      <span className="text-gray-900">{milestone.progress}%</span>
+                    </div>
+                    <Progress value={milestone.progress} className="h-2" />
                   </div>
-                  <Progress value={milestone.progress} className="h-2" />
-                </div>
 
-                <div>
-                  <span className={`px-3 py-1 rounded-full text-xs ${getStatusColor(milestone.status)}`}>
-                    {milestone.status}
-                  </span>
+                  <div>
+                    <span className={`px-3 py-1 rounded-full text-xs ${getStatusColor(milestone.status)}`}>
+                      {milestone.status}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Add Milestone Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

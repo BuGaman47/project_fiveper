@@ -9,7 +9,7 @@ import lombok.Data;
 public class User {
 
     @Id
-    @Column(name = "id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
     @Column(name = "userId")
@@ -24,4 +24,7 @@ public class User {
     @Column(name = "role")
     private String role;
 
+    // ✅ เพิ่ม password สำหรับระบบ login
+    @Column(name = "password")
+    private String password;
 }

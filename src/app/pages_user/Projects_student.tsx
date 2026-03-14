@@ -1,4 +1,15 @@
+import { useState, useEffect } from 'react';
+import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -7,62 +18,122 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 import * as React from 'react';
+
+// Backend: GET    /api/projects      → List<Project> { id, name, student }
+// Backend: GET    /api/projects/{id} → Project
+// Backend: POST   /api/projects      → Project
+// Backend: PUT    /api/projects/{id} → Project
+// Backend: DELETE /api/projects/{id} → void
 
 interface Project {
   id: number;
   name: string;
-  description: string;
-  course: string;
-  dueDate: string;
-  status: string;
+  student: string;
 }
 
-const projects: Project[] = [
-  {
-    id: 1,
-    name: 'โครงการพัฒนาเว็บไซต์',
-    description: 'สร้างเว็บไซต์ที่รองรับหลายขนาดหน้าจอ',
-    course: 'CS 101',
-    dueDate: '2026-03-15',
-    status: 'กำลังดำเนินการ',
-  },
-  {
-    id: 2,
-    name: 'การออกแบบฐานข้อมูล',
-    description: 'ออกแบบและสร้างโครงสร้างฐานข้อมูล',
-    course: 'CS 201',
-    dueDate: '2026-03-20',
-    status: 'กำลังดำเนินการ',
-  },
-  {
-    id: 3,
-    name: 'โมเดลแมชชีนเลิร์นนิง',
-    description: 'ฝึกโมเดลการจำแนกประเภท',
-    course: 'CS 301',
-    dueDate: '2026-04-01',
-    status: 'ยังไม่เริ่ม',
-  },
-];
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'เสร็จสิ้น':
-      return 'bg-green-100 text-green-800';
-    case 'กำลังดำเนินการ':
-      return 'bg-blue-100 text-blue-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
+const API_URL = 'http://localhost:8080/api/projects';
 
 export function Projects_student() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [formData, setFormData] = useState({ name: '', student: '' });
+
+  // Fetch all projects
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch(API_URL);
+        if (!response.ok) throw new Error('Failed to fetch projects');
+        const data: Project[] = await response.json();
+        setProjects(data);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  const handleAddProject = () => {
+    setEditingProject(null);
+    setFormData({ name: '', student: '' });
+    setIsModalOpen(true);
+  };
+
+  const handleEditProject = (project: Project) => {
+    setEditingProject(project);
+    setFormData({ name: project.name, student: project.student });
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteProject = async (id: number) => {
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบโครงการนี้?')) return;
+
+    try {
+      const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete project');
+      setProjects(projects.filter((p) => p.id !== id));
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('เกิดข้อผิดพลาดในการลบโครงการ');
+    }
+  };
+
+  const handleSaveProject = async () => {
+    if (!formData.name || !formData.student) {
+      alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
+      return;
+    }
+
+    try {
+      if (editingProject) {
+        // UPDATE
+        const response = await fetch(`${API_URL}/${editingProject.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+        if (!response.ok) throw new Error('Failed to update project');
+        const updated: Project = await response.json();
+        setProjects(projects.map((p) => (p.id === updated.id ? updated : p)));
+      } else {
+        // CREATE
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+        if (!response.ok) throw new Error('Failed to create project');
+        const created: Project = await response.json();
+        setProjects([...projects, created]);
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Error saving project:', error);
+      alert('เกิดข้อผิดพลาดในการบันทึกโครงการ');
+    }
+  };
+
+  if (loading) return <p>กำลังโหลดข้อมูล...</p>;
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl text-gray-900">โครงการของฉัน</h1>
-        <p className="text-gray-600 mt-1">โครงการที่ได้รับมอบหมาย</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl text-gray-900">โครงการของฉัน</h1>
+          <p className="text-gray-600 mt-1">จัดการโครงการที่ได้รับมอบหมาย</p>
+        </div>
+        <Button onClick={handleAddProject} className="bg-green-600 hover:bg-green-700">
+          <Plus className="w-4 h-4 mr-2" />
+          เพิ่มโครงการ
+        </Button>
       </div>
 
       {/* Projects Table */}
@@ -72,33 +143,76 @@ export function Projects_student() {
             <TableHeader>
               <TableRow>
                 <TableHead>ชื่อโครงการ</TableHead>
-                <TableHead>รายวิชา</TableHead>
-                <TableHead>วันครบกำหนด</TableHead>
-                <TableHead>สถานะ</TableHead>
+                <TableHead>นักศึกษา</TableHead>
+                <TableHead className="text-right">การดำเนินการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {projects.map((project) => (
-                <TableRow key={project.id}>
-                  <TableCell>
-                    <div>
-                      <p className="text-gray-900">{project.name}</p>
-                      <p className="text-xs text-gray-600">{project.description}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>{project.course}</TableCell>
-                  <TableCell>{new Date(project.dueDate).toLocaleDateString('th-TH')}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(project.status)}`}>
-                      {project.status}
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {projects.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="text-center py-8 text-gray-500">
+                    ไม่มีข้อมูลโครงการ
+                  </td>
+                </tr>
+              ) : (
+                projects.map((project) => (
+                  <TableRow key={project.id}>
+                    <TableCell className="text-gray-900">{project.name}</TableCell>
+                    <TableCell>{project.student}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditProject(project)}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteProject(project.id)}>
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      {/* Add/Edit Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{editingProject ? 'แก้ไขโครงการ' : 'เพิ่มโครงการใหม่'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">ชื่อโครงการ</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="กรอกชื่อโครงการ"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="student">นักศึกษา</Label>
+              <Input
+                id="student"
+                value={formData.student}
+                onChange={(e) => setFormData({ ...formData, student: e.target.value })}
+                placeholder="กรอกชื่อนักศึกษา"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button onClick={handleSaveProject} className="bg-green-600 hover:bg-green-700">
+              บันทึก
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
